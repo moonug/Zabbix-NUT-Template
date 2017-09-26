@@ -18,7 +18,7 @@ if [ $ups = ups.discovery ]; then
 else
 key=$2
 
-if [ $key = ups.status ]; then
+if [ "a$key" == "aups.status" ]; then
 	state=`/bin/upsc $ups $key 2>&1 | grep -v SSL`
 	case $state in
 		OL)		echo 1 ;; #'On line (mains is present)' ;;
@@ -32,9 +32,28 @@ if [ $key = ups.status ]; then
 		OFF)		echo 9 ;; #'UPS is offline and is not supplying power to the load' ;;
 		OVER)		echo 10 ;; #'UPS is overloaded' ;;
 		TRIM)		echo 11 ;; #'UPS is trimming incoming voltage (called "buck" in some hardware)' ;;
-		BOOST)		echo 12 ;; #'UPS is boosting incoming voltage' ;;
+		BOOST|"OL BOOST")		echo 12 ;; #'UPS is boosting incoming voltage' ;;
 		* )		echo 0 ;; #'unknown state' ;;
 	esac
+elif [ "a$key" == "atext" ]; then
+	state=`/bin/upsc $ups ups.status 2>&1 | grep -v SSL`
+	case $state in
+		OL)		state=1 ;; #'On line (mains is present)' ;;
+		OB)		state=2 ;; #'On battery (mains is not present)' ;;
+		LB)		state=3 ;; #'Low battery' ;;
+		RB)		state=4 ;; #'The battery needs to be replaced' ;;
+		CHRG)		state=5 ;; #'The battery is charging' ;;
+		DISCHRG)	state=6 ;; #'The battery is discharging (inverter is providing load power)' ;;
+		BYPASS)		state=7 ;; #'UPS bypass circuit is active echo no battery protection is available' ;;
+		CAL)		state=8 ;; #'UPS is currently performing runtime calibration (on battery)' ;;
+		OFF)		state=9 ;; #'UPS is offline and is not supplying power to the load' ;;
+		OVER)		state=10 ;; #'UPS is overloaded' ;;
+		TRIM)		state=11 ;; #'UPS is trimming incoming voltage (called "buck" in some hardware)' ;;
+		BOOST|"OL BOOST")		state=12 ;; #'UPS is boosting incoming voltage' ;;
+		* )		state=0 ;; #'unknown state' ;;
+	esac
+	/bin/upsc $ups 2>&1 | grep -v SSL | sed "s/\(ups.status: \).*/\1$state/"
+
 else
 	/bin/upsc $ups $key  2>&1 | grep -v SSL
 fi
